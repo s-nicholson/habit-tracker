@@ -26,6 +26,8 @@
     .record-item .btn-icon-sm { width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: none; background: none; border-radius: 4px; font-size: 14px; color: #888; cursor: pointer }
     .record-item .btn-icon-sm:hover { background: #dee2e6; color: #333 }
     .sidebar-footer { padding: 8px }
+    #github-link { display: none; }
+    #github-link.btn-icon-sm { color: #888 }
     #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100 }
     #sidebar-overlay.show { display: block }
     @media(max-width:640px) {
@@ -72,7 +74,10 @@
       <div id="sidebar-inner">
         <div class="sidebar-header">
           <h6>Trackers</h6>
-          <button class="btn-icon-sm" onclick="toggleSidebar()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+          <div class="d-flex align-items-center gap-1">
+            <a id="github-link" class="btn-icon-sm" href="#" target="_blank" rel="noopener" title="View source on GitHub"><i class="bi bi-github"></i></a>
+            <button class="btn-icon-sm" onclick="toggleSidebar()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+          </div>
         </div>
         <div id="record-list"></div>
         <div class="sidebar-footer">
@@ -331,10 +336,25 @@
       data = { habits: [], log: {} }; onUpdate();
     }
 
+    // GitHub Pages serves at https://<user>.github.io/<repo>/ — derive the
+    // repo link from that rather than hardcoding it, so the same file works
+    // for any fork/repo without edits.
+    function initGithubLink() {
+      const m = location.hostname.match(/^([^.]+)\.github\.io$/);
+      if (!m) return; // not on GitHub Pages (e.g. local file) — leave hidden
+      const user = m[1];
+      const repo = location.pathname.split('/').filter(Boolean)[0];
+      if (!repo) return;
+      const link = document.getElementById('github-link');
+      link.href = `https://github.com/${user}/${repo}`;
+      link.style.display = 'inline-flex';
+    }
+
     // ─── Init ───────────────────────────────────────────────────────────
     loadAll();
     renderSidebar();
     checkUrlShare();
+    initGithubLink();
     if (!currentId) {
       const ids = Object.keys(records);
       if (ids.length === 1) selectRecord(ids[0]);
