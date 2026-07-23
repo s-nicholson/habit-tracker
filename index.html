@@ -56,8 +56,11 @@
     .manage-row { display: flex; align-items: center; gap: 8px; padding: 6px 0 }
     .manage-row .name { flex: 1; font-size: 14px }
     #heatmap-scroll { overflow-x: auto; padding-bottom: 6px }
+    #heatmap-row { display: flex; gap: 4px }
+    #heatmap-labels { display: grid; grid-template-rows: repeat(7, 14px); gap: 3px; font-size: 9px; color: #999; line-height: 14px; flex-shrink: 0 }
     #heatmap { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 14px); gap: 3px; width: max-content }
     .hm-cell { width: 14px; height: 14px; border-radius: 3px; background: #ebedf0 }
+    .hm-cell.hm-blank { background: transparent }
     .hm-cell[data-level="1"] { background: #cfe8cd }
     .hm-cell[data-level="2"] { background: #8fd18a }
     .hm-cell[data-level="3"] { background: #4cb04a }
@@ -111,7 +114,12 @@
 
           <!-- Overview: GitHub-style heatmap -->
           <div id="tab-overview">
-            <div id="heatmap-scroll"><div id="heatmap"></div></div>
+            <div id="heatmap-scroll">
+              <div id="heatmap-row">
+                <div id="heatmap-labels"><span>Sun</span><span></span><span>Tue</span><span></span><span>Thu</span><span></span><span>Sat</span></div>
+                <div id="heatmap"></div>
+              </div>
+            </div>
             <div id="heatmap-legend">Less <span class="hm-cell"></span><span class="hm-cell" data-level="1"></span><span class="hm-cell" data-level="2"></span><span class="hm-cell" data-level="3"></span><span class="hm-cell" data-level="4"></span> More</div>
           </div>
 
@@ -196,17 +204,23 @@
       const total = data.habits.length;
       const el = document.getElementById('heatmap');
       const today = new Date();
-      const cells = [];
-      for (let i = HEATMAP_DAYS - 1; i >= 0; i--) {
-        const d = new Date(today); d.setDate(d.getDate() - i);
+      const start = new Date(today);
+      start.setDate(start.getDate() - (HEATMAP_DAYS - 1));
+
+      // Grid fills column-major with 7 rows, so row = index % 7. To keep
+      // row 0 = Sunday regardless of where the window starts, pad with
+      // blank cells until `start`'s weekday lines up with row 0.
+      const leadingBlanks = start.getDay(); // 0 = Sunday ... 6 = Saturday
+      const html = [];
+      for (let i = 0; i < leadingBlanks; i++) html.push('<div class="hm-cell hm-blank"></div>');
+      for (let i = 0; i < HEATMAP_DAYS; i++) {
+        const d = new Date(start); d.setDate(d.getDate() + i);
         const key = d.toISOString().slice(0, 10);
         const completed = (data.log[key] || []).length;
         const level = total === 0 || completed === 0 ? 0 : Math.min(4, Math.ceil((completed / total) * 4));
-        cells.push({ key, completed, total, level });
+        html.push(`<div class="hm-cell" data-level="${level}" title="${key}: ${completed}/${total} habits"></div>`);
       }
-      el.innerHTML = cells.map(c =>
-        `<div class="hm-cell" data-level="${c.level}" title="${c.key}: ${c.completed}/${c.total} habits"></div>`
-      ).join('');
+      el.innerHTML = html.join('');
     }
     function renderDomain() {
       renderChecklist();
